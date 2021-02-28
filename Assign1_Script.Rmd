@@ -8,23 +8,93 @@ output: html_document
 ## Introduction
 We compared the algal symbiont community composition from two different species in the family *Siderastreidae*. In order to this, we are using ITS2 sequence data from Nicola Kriefall. 
 
-# R version and packages 
+# R version 
 We used R version R-4.0.3
 
+~########################~#
+##### PRE-PROCESSING #######
+#~########################~#
+
+#fastq files should have R1 & R2 designations for PE reads
+#Also - some pre-trimming. Retain only PE reads that match amplicon primer. Remove reads containing Illumina sequencing adapters
+
+##in Terminal home directory:
+##following instructions of installing BBtools from https://jgi.doe.gov/data-and-tools/bbtools/bb-tools-user-guide/installation-guide/
+##1. download BBMap package, sftp to installation directory
+##2. untar: 
+#tar -xvzf BBMap_(version).tar.gz
+##3. test package:
+#cd bbmap
+#~/bin/bbmap/stats.sh in=~/bin/bbmap/resources/phix174_ill.ref.fa.gz
+
+## my adaptors, which I saved as "adaptors.fasta"
+# >forward
+# AATGATACGGCGACCAC
+# >forwardrc
+# GTGGTCGCCGTATCATT
+# >reverse
+# CAAGCAGAAGACGGCATAC
+# >reverserc
+# GTATGCCGTCTTCTGCTTG
+
+##Note: Illumina should have cut these out already, normal if you don't get any
+
+##primers for ITS:
+# >forward
+# GTGAATTGCAGAACTCCGTG
+# >reverse
+# CCTCCGCTTACTTATATGCTT
+
+##Still in terminal - making a sample list based on the first phrase before the underscore in the .fastq name
+#ls *R1_001.fastq | cut -d '_' -f 1 > samples.list
+
+##cuts off the extra words in the .fastq files
+#for file in $(cat samples.list); do  mv ${file}_*R1*.fastq ${file}_R1.fastq; mv ${file}_*R2*.fastq ${file}_R2.fastq; done 
+
+##gets rid of reads that still have the adaptor sequence, shouldn't be there, I didn't have any
+#for file in $(cat samples.list); do ~/bin/bbmap/bbduk.sh in1=${file}_R1.fastq in2=${file}_R2.fastq ref=adaptors.fasta out1=${file}_R1_NoIll.fastq out2=${file}_R2_NoIll.fastq; done &>bbduk_NoIll.log
+
+##only keeping reads that start with the primer
+#for file in $(cat samples.list); do ~/bin/bbmap/bbduk.sh in1=${file}_R1_NoIll.fastq in2=${file}_R2_NoIll.fastq k=15 restrictleft=21 literal=GTGAATTGCAGAACTCCGTG,CCTCCGCTTACTTATATGCTT outm1=${file}_R1_NoIll_ITS.fastq outu1=${file}_R1_check.fastq outm2=${file}_R2_NoIll_ITS.fastq outu2=${file}_R2_check.fastq; done &>bbduk_ITS.log
+##higher k = more reads removed, but can't surpass k=20 or 21
+
+##using cutadapt to remove adapters & reads with Ns in them
+#module load cutadapt 
+# for file in $(cat samples.list)
+# do
+# cutadapt -g GTGAATTGCAGAACTCCGTG -G CCTCCGCTTACTTATATGCTT -o ${file}_R1.fastq -p ${file}_R2.fastq --max-n 0 ${file}_R1_NoIll_ITS.fastq ${file}_R2_NoIll_ITS.fastq
+# done &> clip.log
+##-g regular 5' forward primer 
+##-G regular 5' reverse primer
+##-o forward out
+##-p reverse out
+##-max-n 0 means 0 Ns allowed
+##this overwrote my original renamed files 
+
+##did sftp of *_R1.fastq & *_R2.fastq files to the folder to be used in dada2
+
+## Dada2 pipeline steps
+
+# First we are going to load our libraries and set our working directory
+```{r, eval=FALSE}
 library(dada2); #packageVersion("dada2"); citation("dada2")
 library(ShortRead); #packageVersion("ShortRead")
 library(ggplot2); #packageVersion("ggplot2")
 library(phyloseq); #packageVersion("phyloseq")
 library(R.utils)
 
-#Set path to unzipped, renamed fastq files
-path <- "C:/Users/corey/Downloads/HW_1/its2_sids_rads/its2_sids_rads" # CHANGE ME to the directory containing the fastq files after unzipping.
+setwd("~/Downloads/HW_1/its2_sids_rads/its2_sids_rads")
+```
+
+# Next we are goind to set path to unzipped fastq files. We are only using a subset of the data in this anaylsis for ease
+```{r, eval=FALSE}
+path <- "~/Downloads/HW_1/its2_sids_rads/its2_sids_rads" 
+```
+
 fns <- list.files(path)
 fns
+```
 
-setwd( "C:/Users/corey/Downloads/HW_1/its2_sids_rads/its2_sids_rads")
-getwd()
-gunzip("H7_bh_sid_18_ITS2_R2.fastq.gz")
 
 ################################
 ##### Trimming/Filtering #######
