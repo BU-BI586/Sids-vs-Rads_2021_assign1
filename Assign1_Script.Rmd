@@ -5,17 +5,15 @@ date: "2/27/2021"
 output: html_document
 ---
 
-## Introduction
+# Introduction
 We compared the algal symbiont community composition from two different species in the family *Siderastreidae*. In order to this, we are using ITS2 sequence data from Nicola Kriefall. 
 
-# R version 
+**R version** 
+
 We used R version R-4.0.3
 
-~########################~#
-##### PRE-PROCESSING #######
-#~########################~#
-
-#fastq files should have R1 & R2 designations for PE reads
+# Pre-processing of reads
+The fastq files have R1 (forward read) and R2 (reverse read) designations for pair end data
 #Also - some pre-trimming. Retain only PE reads that match amplicon primer. Remove reads containing Illumina sequencing adapters
 
 ##in Terminal home directory:
