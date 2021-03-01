@@ -33,20 +33,17 @@ The fastq files have R1 (forward read) and R2 (reverse read) designations for pa
 # >reverse
 # CCTCCGCTTACTTATATGCTT
 
-#Also - some pre-trimming. Retain only PE reads that match amplicon primer. Remove reads containing Illumina sequencing adapters
+Start by downloading BBMap package following the installation instructions from https://jgi.doe.gov/data-and-tools/bbtools/bb-tools-user-guide/installation-guide/
 
-##in Terminal home directory:
-##following instructions of installing BBtools from https://jgi.doe.gov/data-and-tools/bbtools/bb-tools-user-guide/installation-guide/
 ##1. download BBMap package, sftp to installation directory
 ##2. untar: 
-#tar -xvzf BBMap_(version).tar.gz
-##3. test package:
-#cd bbmap
-#~/bin/bbmap/stats.sh in=~/bin/bbmap/resources/phix174_ill.ref.fa.gz
-
-
+```{r}
+tar("-xvzf BBMap_38.90.tar.gz")
+```
 ##Still in terminal - making a sample list based on the first phrase before the underscore in the .fastq name
-#ls *R1_001.fastq | cut -d '_' -f 1 > samples.list
+```{r}
+ls *R1.fastq | cut -d '_' -f 1 > samples.list
+```
 
 ##cuts off the extra words in the .fastq files
 #for file in $(cat samples.list); do  mv ${file}_*R1*.fastq ${file}_R1.fastq; mv ${file}_*R2*.fastq ${file}_R2.fastq; done 
@@ -83,7 +80,7 @@ library(ggplot2); #packageVersion("ggplot2")
 library(phyloseq); #packageVersion("phyloseq")
 library(R.utils)
 
-setwd("~/Downloads/HW_1/its2_sids_rads/its2_sids_rads")
+
 ```
 
 # Next we are goind to set path to unzipped fastq files. We are only using a subset of the data in this anaylsis for ease
