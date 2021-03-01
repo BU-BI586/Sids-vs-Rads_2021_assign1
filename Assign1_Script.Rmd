@@ -1,5 +1,5 @@
 ---
-title: "Symbiont Communities of Siderastrea siderea and Siderastrea radians"
+title: "Symbiont Communities of *Siderastrea siderea* and *Siderastrea radians*"
 author: "Alexa Huzar, Jacob Jaskiel, Nicholas Peoples"
 date: "2/27/2021"
 output: html_document
@@ -14,6 +14,25 @@ We used R version R-4.0.3
 
 # Pre-processing of reads
 The fastq files have R1 (forward read) and R2 (reverse read) designations for pair end data
+
+##### Important information needed about the primers and adaptors 
+
+**my adaptors, which I saved as "adaptors.fasta"**
+#>forward
+# AATGATACGGCGACCAC
+# >forwardrc
+# GTGGTCGCCGTATCATT
+# >reverse
+# CAAGCAGAAGACGGCATAC
+# >reverserc
+# GTATGCCGTCTTCTGCTTG
+
+**primers for ITS2**
+# >forward
+# GTGAATTGCAGAACTCCGTG
+# >reverse
+# CCTCCGCTTACTTATATGCTT
+
 #Also - some pre-trimming. Retain only PE reads that match amplicon primer. Remove reads containing Illumina sequencing adapters
 
 ##in Terminal home directory:
@@ -25,23 +44,6 @@ The fastq files have R1 (forward read) and R2 (reverse read) designations for pa
 #cd bbmap
 #~/bin/bbmap/stats.sh in=~/bin/bbmap/resources/phix174_ill.ref.fa.gz
 
-## my adaptors, which I saved as "adaptors.fasta"
-# >forward
-# AATGATACGGCGACCAC
-# >forwardrc
-# GTGGTCGCCGTATCATT
-# >reverse
-# CAAGCAGAAGACGGCATAC
-# >reverserc
-# GTATGCCGTCTTCTGCTTG
-
-##Note: Illumina should have cut these out already, normal if you don't get any
-
-##primers for ITS:
-# >forward
-# GTGAATTGCAGAACTCCGTG
-# >reverse
-# CCTCCGCTTACTTATATGCTT
 
 ##Still in terminal - making a sample list based on the first phrase before the underscore in the .fastq name
 #ls *R1_001.fastq | cut -d '_' -f 1 > samples.list
@@ -71,7 +73,7 @@ The fastq files have R1 (forward read) and R2 (reverse read) designations for pa
 
 ##did sftp of *_R1.fastq & *_R2.fastq files to the folder to be used in dada2
 
-## Dada2 pipeline steps
+# Dada2 pipeline steps
 
 # First we are going to load our libraries and set our working directory
 ```{r, eval=FALSE}
