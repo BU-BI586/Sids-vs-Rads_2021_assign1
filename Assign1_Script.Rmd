@@ -12,57 +12,44 @@ We compared the algal symbiont community composition from two different species 
 
 We used R version R-4.0.3
 
-# Pre-processing of reads
 The fastq files have R1 (forward read) and R2 (reverse read) designations for pair end data
 
-# Dada2 pipeline steps
+# Dada2 Pipeline Steps
+**In order to do our anaylsis of the communities, we used the dada2 pipeline. This pipeline allows us to trim and filter our sequences and merge our paired reads before assinging taxonomy to assess what species were present. 
 
-# First we are going to load our libraries and set our working directory
+### Preparation Steps
+**We first loaded the appropriate libraries for all the analysis and graphs.**
+
 ```{r, eval=FALSE}
-library(dada2); #packageVersion("dada2"); citation("dada2")
-library(ShortRead); #packageVersion("ShortRead")
-library(ggplot2); #packageVersion("ggplot2")
-library(phyloseq); #packageVersion("phyloseq")
-library(R.utils)
+library(dada2);
+library(ShortRead); 
+library(ggplot2); 
+library(phyloseq); 
 ```
 
-# Next we are goind to set path to unzipped fastq files. We are only using a subset of the data in this anaylsis for ease
+**Additonally we set the path to be the location of the unzipped fastq files**
 ```{r, eval=FALSE}
 path <- "C:/Users/corey/Downloads/HW_1/its2_sids_rads/its2_sids_rads" 
 fns <- list.files(path)
+```
+
+**This is what we have our path**
+```{r}
 fns
 ```
 
-
-
-
-################################
-##### Trimming/Filtering #######
-################################
-
-```{r}
-fastqs <- fns[grepl(".fastq", fns)]
-fastqs <- sort(fastqs) # Sort ensures reads are in same order
-```
-
-# Get sample names, assuming files named as so: SAMPLENAME_XXX.fastq; OTHERWISE MODIFY
-```{r}
-sample.names <- sapply(strsplit(fastqs, ".fastq"), `[`, 1) 
-sample.names
-# Specify the full path to the fnFs
-fnFs <- file.path(path, fastqs)
-fnFs
-```
+**Now we sort the files by forward and reverse sequence reads**
 
 ```{r}
 fnFs <- sort(list.files(path, pattern = "_R1.fastq", full.names = TRUE))
 fnRs <- sort(list.files(path, pattern = "_R2.fastq", full.names = TRUE))
 ```
 
+**After sorting, we can get the samples names. Note that name format should be SAMPLENAME_XXX.fastq**
+
 ```{r}
 get.sample.name <- function(fname) strsplit(basename(fname), "_")[[1]][1]
 sample.names <- unname(sapply(fnFs, get.sample.name))
-head(sample.names)
 sample.names
 ```
 
@@ -100,7 +87,7 @@ rbind(FWD.ForwardReads = sapply(FWD.orients, primerHits, fn = fnFs.filtN[[2]]),
       REV.ForwardReads = sapply(REV.orients, primerHits, fn = fnFs.filtN[[2]]), 
       REV.ReverseReads = sapply(REV.orients, primerHits, fn = fnRs.filtN[[2]]))
 
-#########Visualize Raw data
+#### Visualize Raw data
 
 #First, lets look at quality profile of R1 reads
 ```{r}
