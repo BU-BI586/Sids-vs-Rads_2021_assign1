@@ -87,17 +87,31 @@ rbind(FWD.ForwardReads = sapply(FWD.orients, primerHits, fn = fnFs.filtN[[2]]),
       REV.ForwardReads = sapply(REV.orients, primerHits, fn = fnFs.filtN[[2]]), 
       REV.ReverseReads = sapply(REV.orients, primerHits, fn = fnRs.filtN[[2]]))
 
-#### Visualize Raw data
+### Visualize Raw data
 
-#First, lets look at quality profile of R1 reads
-```{r}
+**Now we check the quality of the reads to determine at what point we should trim to avoid errors**
+
+As our files are paired end we ran quality plots for both the forward and reverse reads. We had to remove sequences 11 and 14 due to poor quality
+
+#### Example of our foward read plots
+```{r, eval=FALSE}
 plotQualityProfile(fnFs[c(1,2,3,4,5,6,7,8,9)])
 plotQualityProfile(fnFs[c(10,12,13,15,16,17)])
+```
+
+```{r,echo=FALSE}
+plotQualityProfile(fnFs{c(1,2)})
+```
+
+#### Examples of our reverse read plots
+```{r, eval=FALSE}
 plotQualityProfile(fnRs[c(1,2,3,4,5,6,7,8,9)])
 plotQualityProfile(fnRs[c(10,12,13,15,16,17)])
 ```
 
-
+```{r, echo=FALSE}
+plotQualityProfile(fnRs[c(1,2)])
+```
 
 #Recommend trimming where quality profile crashes - in this case, forward reads mostly fine up to 300
 #For common ITS amplicon strategies with paired end reads, it is undesirable to truncate reads to a fixed length due to the large amount of length variation at that locus. That is OK, just leave out truncLen. Make sure you removed the forward and reverse primers from both the forward and reverse reads though! 
