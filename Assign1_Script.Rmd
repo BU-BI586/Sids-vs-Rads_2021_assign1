@@ -350,27 +350,26 @@ head(samdf)
 rownames(samdf) <- samdf$Sample
 ```
 
-# Construct phyloseq object (straightforward from dada2 outputs)
-# ps <- phyloseq(otu_table(seqtab.nochim, taxa_are_rows=FALSE), 
-#                sample_data(samdf), 
-#                tax_table(taxa))
-# 
-# ps
 
 #phyloseq object with shorter names - doing this one instead of one above
+```{r}
 ids <- paste0("sq", seq(1, length(colnames(seqtab.nochim))))
+```
 #making output fasta file for lulu step & maybe other things, before giving new ids to sequences
 #path='~/moorea_holobiont/mr_ITS2/mrits2.fasta'
 #uniquesToFasta(seqtab.nochim, path, ids = ids, mode = "w", width = 20000)
+```{r}
 colnames(seqtab.nochim)<-ids
 taxa2 <- cbind(taxa, rownames(taxa)) #retaining raw sequence info before renaming
 rownames(taxa2)<-ids
 
 ps <- phyloseq(otu_table(seqtab.nochim, taxa_are_rows=FALSE), 
                sample_data(samdf), 
-               tax_table(taxa2))
-
+               tax_table(taxa2),
+               sample_names(ps))
+```
 ps
+```
 
 #removing sample 87 from ps object, no data
 ps_no87 <- subset_samples(ps, Sample != "87")
