@@ -86,7 +86,7 @@ Here we create a subdirectory of the filtered sequences for the next step to che
 ```{r}
 fnFs.filtN <- file.path(path, "filtN", basename(fnFs)) # Put N-filterd files in filtN/ subdirectory
 fnRs.filtN <- file.path(path, "filtN", basename(fnRs))
-filterAndTrim(fnFs, fnFs.filtN, fnRs, fnRs.filtN, maxN = 0, multithread = TRUE)
+filterAndTrim(fnFs, fnFs.filtN, fnRs, fnRs.filtN, maxN = 0, multithread = FALSE)
 ```
 Now, we create a function to check for the presence of our forward or reverse primers in forward and reverse reads
 ```{r}
@@ -104,12 +104,12 @@ rbind(FWD.ForwardReads = sapply(FWD.orients, primerHits, fn = fnFs.filtN[[2]]),
 
 **Now we check the quality of the reads to determine at what point we should trim to avoid errors**
 
-As our files are paired end we ran quality plots for both the forward and reverse reads. We had to remove sequences 11 and 14 due to poor quality
+As our files are paired end we ran quality plots for both the forward and reverse reads. We had to remove sequences two sequences due to poor quality
 
 #### Example of our foward read plots
 ```{r, eval=FALSE}
 plotQualityProfile(fnFs[c(1,2,3,4,5,6,7,8,9)])
-plotQualityProfile(fnFs[c(10,12,13,15,16,17)])
+plotQualityProfile(fnFs[c(10,11,12,13,14,15)])
 ```
 
 ```{r,echo=FALSE}
@@ -119,7 +119,7 @@ plotQualityProfile(fnFs[c(1,8)])
 #### Examples of our reverse read plots
 ```{r, eval=FALSE}
 plotQualityProfile(fnRs[c(1,2,3,4,5,6,7,8,9)])
-plotQualityProfile(fnRs[c(10,12,13,15,16,17)])
+plotQualityProfile(fnRs[c(10,11,12,13,14,15)])
 ```
 
 ```{r, echo=FALSE}
@@ -138,12 +138,11 @@ filtRs <- file.path(filt_path, paste0(sample.names, "_R_filt.fastq"))
 Now, that we set the path we can actually filter our reads based on the quality plots. We are using the parameters set by Nicola as our data was from her. The truncLen values allow trimming to get better quality while maintaining overlap for later merging 
 ```{r}
 out <- filterAndTrim(fnFs, filtFs, fnRs, filtRs, 
-                     truncLen=c(220,200), #leaves overlap
+                     truncLen=c(220,200),
                      maxN=0,
                      maxEE=c(1,1),
                      truncQ=2, 
                      minLen = 50,
-                     #trimLeft=c(20,21), #N nucleotides to remove from the start of each read
                      rm.phix=TRUE, 
                      matchIDs=TRUE, 
                      compress=TRUE, multithread=FALSE)
@@ -181,8 +180,10 @@ derepFs <- derepFastq(filtFs, verbose=TRUE)
 derepRs <- derepFastq(filtRs, verbose=TRUE)
 ```
 # Name the derep-class objects by the sample names
+```{r}
 names(derepFs) <- sample.names
 names(derepRs) <- sample.names
+```
 
 ################################
 ##### Infer Sequence Variants #######
