@@ -22,9 +22,11 @@ The fastq files have R1 (forward read) and R2 (reverse read) designations for pa
 
 ```{r, eval=FALSE}
 library(dada2);
+library(ggplot2);
 library(ShortRead); 
 library(ggplot2); 
 library(phyloseq); 
+library(Rmisc)
 ```
 
 **Additonally we set the path to be the location of the unzipped fastq files**
@@ -294,35 +296,7 @@ tail(track)
 write.csv(track,file="its2_reads.csv",row.names=TRUE,quote=FALSE)
 ```
 
-#plotting for no reason
 
-#manually added raw counts from the raw .fastq file using the following loop in Terminal:
-# for file in *R1_001.fastq
-# do
-# echo $file >> raw_r1_names
-# grep @M0 $file | wc -l >> raw_r1_counts
-# done
-setwd("~/moorea_holobiont/mr_ITS2/")
-reads <- read.csv("its2_reads_renamed.csv")
-#counts1 = raw
-#counts2 = input
-#counts3 = filtered
-#counts4 = denoised
-#counts5 = merged
-#counts6 = nonchim
-
-reread <- reshape(reads, varying = c("counts1","counts2", "counts3", "counts4", "counts5", "counts6"), timevar = "day",idvar = "sample", direction = "long", sep = "")
-reread$sample <- as.factor(reread$sample)
-ggplot(reread,aes(x=day,y=counts,color=sample))+
-  geom_point()+
-  geom_path()
-
-library(Rmisc)
-reread.se <- summarySE(data=reread,measurevar="counts",groupvars=c("day"))
-ggplot(reread.se,aes(x=day,y=counts))+
-  geom_point()+
-  geom_path()+
-  geom_errorbar(aes(ymin=counts-se,ymax=counts+se),width=0.3)
 
 
 ################################
@@ -367,22 +341,44 @@ taxa <- readRDS("mrits2_taxa.rds")
 
 #import dataframe holding sample information
 #have your samples in the same order as the seqtab file in the rows, variables as columns
-samdf<-read.csv("variabletable.csv")
+
+
+#import dataframe holding sample information
+```{r}
+samdf<-read.csv("mrits_sampledata.csv")
 head(samdf)
-head(seqtab.nochim)
-head(taxa)
-rownames(samdf) <- samdf$sample
+rownames(samdf) <- samdf$Sample
+```
 
 # Construct phyloseq object (straightforward from dada2 outputs)
+# ps <- phyloseq(otu_table(seqtab.nochim, taxa_are_rows=FALSE), 
+#                sample_data(samdf), 
+#                tax_table(taxa))
+# 
+# ps
+
+#phyloseq object with shorter names - doing this one instead of one above
+ids <- paste0("sq", seq(1, length(colnames(seqtab.nochim))))
+#making output fasta file for lulu step & maybe other things, before giving new ids to sequences
+#path='~/moorea_holobiont/mr_ITS2/mrits2.fasta'
+#uniquesToFasta(seqtab.nochim, path, ids = ids, mode = "w", width = 20000)
+colnames(seqtab.nochim)<-ids
+taxa2 <- cbind(taxa, rownames(taxa)) #retaining raw sequence info before renaming
+rownames(taxa2)<-ids
+
 ps <- phyloseq(otu_table(seqtab.nochim, taxa_are_rows=FALSE), 
                sample_data(samdf), 
-               tax_table(taxa))
+               tax_table(taxa2))
+
 ps
 
-#replace sequences with shorter names (correspondence table output below)
-ids<-taxa_names(ps)
-ids <- paste0("sq",seq(1, length(colnames(seqtab.nochim))))
-colnames(seqtab.nochim) <- ids
+#removing sample 87 from ps object, no data
+ps_no87 <- subset_samples(ps, Sample != "87")
+ps_no87
+
+#removing 87 from other things
+samdf.no87 <- samdf[-92,]
+seqtab.no87 <- seqtab.nochim[-92,]
 
 #Bar-plots
 top90 <- names(sort(taxa_sums(ps), decreasing=TRUE))[1:90]
