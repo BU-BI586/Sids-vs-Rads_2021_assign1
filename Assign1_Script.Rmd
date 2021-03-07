@@ -35,7 +35,7 @@ path <- "C:/Users/corey/Downloads/HW_1/its2_sids_rads/its2_sids_rads"
 fns <- list.files(path)
 ```
 
-**This is what we have our path**
+**These are the files in our path, including all of the unzipped fastq files**
 ```{r}
 fns
 ```
@@ -90,7 +90,7 @@ fnFs.filtN <- file.path(path, "filtN", basename(fnFs)) # Put N-filterd files in 
 fnRs.filtN <- file.path(path, "filtN", basename(fnRs))
 filterAndTrim(fnFs, fnFs.filtN, fnRs, fnRs.filtN, maxN = 0, multithread = FALSE)
 ```
-Now, we create a function to check for the presence of our forward or reverse primers in forward and reverse reads
+Now, we create a function to check for the presence of our forward or reverse primers in forward and reverse reads. 
 ```{r}
 primerHits <- function(primer, fn) {
   nhits <- vcountPattern(primer, sread(readFastq(fn)), fixed = FALSE)
@@ -101,6 +101,7 @@ rbind(FWD.ForwardReads = sapply(FWD.orients, primerHits, fn = fnFs.filtN[[2]]),
       REV.ForwardReads = sapply(REV.orients, primerHits, fn = fnFs.filtN[[2]]), 
       REV.ReverseReads = sapply(REV.orients, primerHits, fn = fnRs.filtN[[2]]))
 ```
+We found no primers, so there is no need to remove them from our data before proceeding.
 
 ### Visualize Raw data
 
@@ -137,7 +138,7 @@ filtFs <- file.path(filt_path, paste0(sample.names, "_F_filt.fastq"))
 filtRs <- file.path(filt_path, paste0(sample.names, "_R_filt.fastq"))
 ```
 
-Now, that we set the path we can actually filter our reads based on the quality plots. We are using the parameters set by Nicola as our data was from her. The truncLen values allow trimming to get better quality while maintaining overlap for later merging 
+Now, that we set the path we can actually filter our reads based on the quality plots. We are using the parameters set by Nicola as our data was from her. The truncLen values allow trimming to get better quality while maintaining overlap for later merging. We use these truncLen values as the quality of our reads drops off after about 220
 ```{r}
 out <- filterAndTrim(fnFs, filtFs, fnRs, filtRs, 
                      truncLen=c(220,200),
@@ -170,11 +171,12 @@ errR <- learnErrors(filtRs, multithread=TRUE)
 plotErrors(errF, nominalQ=TRUE) 
 plotErrors(errR, nominalQ=TRUE) 
 ```
+Error rates converge to zero with increasing Consensus Quality Score, as we had hoped
 
 ################################
 ##### Dereplicate reads #######
 ################################
-#Dereplication combines all identical sequencing reads into into “unique sequences” with a corresponding “abundance”: the number of reads with that unique sequence. 
+#Dereplication combines all identical sequencing reads into “unique sequences” with a corresponding “abundance”: the number of reads with that unique sequence. 
 #Dereplication substantially reduces computation time by eliminating redundant comparisons.
 #DADA2 retains a summary of the quality information associated with each unique sequence. The consensus quality profile of a unique sequence is the average of the positional qualities from the dereplicated reads. These quality profiles inform the error model of the subsequent denoising step, significantly increasing DADA2’s accuracy.
 ```{r}
@@ -194,10 +196,11 @@ names(derepRs) <- sample.names
 dadaFs <- dada(derepFs, err=errF, multithread=TRUE)
 dadaRs <- dada(derepRs, err=errR, multithread=TRUE)
 ```
+The above code takes the dereplicated amplicon sequencing reads and returns the inferred composition of the samples, essentially removing sequencing errors.
 
-#now, look at the dada class objects by sample
-#will tell how many 'real' variants in unique input seqs
-#By default, the dada function processes each sample independently, but pooled processing is available with pool=TRUE and that may give better results for low sampling depths at the cost of increased computation time. See our discussion about pooling samples for sample inference. 
+#Now, we look at the dada class objects by sample
+#This will tell us how many 'real' variants there are in unique input sequences
+#By default, the dada function processes each sample independently, but pooled processing is available with pool=TRUE and that may give better results for low sampling depths at the cost of increased computation time.
 ```{r}
 dadaFs[[1]]
 dadaRs[[1]]
@@ -236,16 +239,17 @@ rowSums(seqtab)
 ```{r}
 table(nchar(getSequences(seqtab)))
 ```
-#mostly at 300 bp, which is just what was expected [271-303 bp]
+Most reads were at 306 bp (73 datapoints), which is close to what was expected according to Nicola's data, which assumed a range of 271-303 bp. The plot below shows the frequency of these sequences by base pairs
 ```{r}
 plot(table(nchar(getSequences(seqtab))))
 ```
+
 
 #The sequence table is a matrix with rows corresponding to (and named by) the samples, and 
 #columns corresponding to (and named by) the sequence variants. 
 #Sequences that are much longer or shorter than expected may be the result of non-specific priming, and may be worth removing
 
-#if I wanted to remove some lengths - not recommended by dada2 for its2 data
+#If we wanted to remove some lengths - not recommended by dada2 for its2 data
 #seqtab2 <- seqtab[,nchar(colnames(seqtab)) %in% seq(268,327)] 
 
 ```{r}
@@ -267,23 +271,24 @@ head(seqtab)
 #Fortunately, the accuracy of the sequences after denoising makes identifying chimeras easier 
 #than it is when dealing with fuzzy OTUs: all sequences which can be exactly reconstructed as 
 #a bimera (two-parent chimera) from more abundant sequences.
-
+Here, we remove all chimeras and return chimera-free unique sequences 
 ```{r}
 seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE, verbose=TRUE)
 dim(seqtab.nochim)
 ```
-#Identified 38 bimeras out of 156 input sequences.
-
+#Identified 5 bimeras out of 93 input sequences
+Now, we find the proportion of our reads that do not have chimeras. Here we find that 99.3% of our reads were free of chimeras.
 ```{r}
 sum(seqtab.nochim)/sum(seqtab)
 ```
-#0.9989
-#The fraction of chimeras varies based on factors including experimental procedures and sample complexity, 
-#but can be substantial. 
+#0.9930478
+#The fraction of chimeras varies based on factors including experimental procedures and sample complexity, but can be substantial. 
+
+
 ################################
 ##### Track Read Stats #######
 ################################
-
+Here, we create a table to visualize our reads as they were filtered, denoised, merged, tabled, and filtered for chimeras
 ```{r}
 getN <- function(x) sum(getUniques(x))
 track <- cbind(out, sapply(dadaFs, getN), sapply(mergers, getN), rowSums(seqtab), rowSums(seqtab.nochim))
@@ -292,6 +297,7 @@ rownames(track) <- sample.names
 head(track)
 tail(track)
 ```
+Here we write this table into a .csv file
 ```{r}
 write.csv(track,file="its2_reads.csv",row.names=TRUE,quote=FALSE)
 ```
@@ -311,12 +317,13 @@ write.csv(track,file="its2_reads.csv",row.names=TRUE,quote=FALSE)
 #modified version for phyloseq looks like this instead:
 #>Symbiodinium; Clade A; A1.1
 
+This assigns a clade to each sequence using corresponding reads from the GeoSymbio database
 ```{r}
 taxa <- assignTaxonomy(seqtab.nochim, "GeoSymbio_ITS2_LocalDatabase_verForPhyloseq.fasta",tryRC=TRUE,minBoot=70,verbose=TRUE)
 unname(head(taxa))
 ```
 
-#to come back to later
+The code below writes these objects as a file so we can restore and come back to it later, as needed
 ```{r}
 saveRDS(seqtab.nochim, file="C:/Users/corey/Downloads/HW_1/its2_sids_rads/its2_sids_rads/mrits2_seqtab.nochim.rds")
 saveRDS(taxa, file="C:/Users/corey/Downloads/HW_1/its2_sids_rads/its2_sids_rads/mrits2_taxa.rds")
