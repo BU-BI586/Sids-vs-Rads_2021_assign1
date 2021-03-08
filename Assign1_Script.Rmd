@@ -20,7 +20,7 @@ The fastq files have R1 (forward read) and R2 (reverse read) designations for pa
 ### Preparation Steps
 **We first loaded the appropriate libraries for all the analysis and graphs.**
 
-```{r, eval=FALSE}
+```{r, message=FALSE}
 library(dada2);
 library(ggplot2);
 library(ShortRead); 
@@ -78,7 +78,7 @@ allOrients <- function(primer) {
 ```
 
 Then using the function set up above we create the orientations of our specific primer sequences in order to check all our sequences
-```{r}
+```{r, message=FALSE}
 FWD.orients <- allOrients(FWD)
 REV.orients <- allOrients(REV)
 FWD.orients
@@ -110,7 +110,7 @@ We found no primers, so there is no need to remove them from our data before pro
 As our files are paired end we ran quality plots for both the forward and reverse reads. We had to remove sequences two sequences due to poor quality
 
 #### Example of our foward read plots
-```{r}
+```{r, message=FALSE}
 plotQualityProfile(fnFs[c(1,2,3,4,5,6,7,8,9)])
 plotQualityProfile(fnFs[c(10,11,12,13,14,15)])
 ```
@@ -120,7 +120,7 @@ plotQualityProfile(fnFs[c(1,8)])
 ```
 
 #### Examples of our reverse read plots
-```{r}
+```{r,message=FALSE}
 plotQualityProfile(fnRs[c(1,2,3,4,5,6,7,8,9)])
 plotQualityProfile(fnRs[c(10,11,12,13,14,15)])
 ```
@@ -207,7 +207,7 @@ These are the number of real variants out of all the unique input sequences in t
 
 The output is only kept if there is at least a 12 base overlap and the overlap is identical
 
-```{r}
+```{r, message=FALSE}
 mergers <- mergePairs(dadaFs, derepFs, dadaRs, derepRs, verbose=TRUE)
 ```
 
@@ -286,7 +286,7 @@ Note that while there is a reclassification of Symbiodiniaceae family, the datab
 
 
 This assigns a clade to each sequence using corresponding reads from the GeoSymbio database
-```{r}
+```{r,message=FALSE}
 taxa <- assignTaxonomy(seqtab.nochim, "GeoSymbio_ITS2_LocalDatabase_verForPhyloseq.fasta",tryRC=TRUE,minBoot=70,verbose=TRUE)
 (head(taxa))
 ```
@@ -303,7 +303,7 @@ write.csv(taxa, file="C:/Users/corey/Downloads/HW_1/its2_sids_rads/its2_sids_rad
 # Handoff 2 phyloseq
 
 First we import in the dataframe holding sample information from Nicola's github
-```{r}
+```{r,message=FALSE}
 samdf<-read.csv("mrits_sampledata.csv")
 head(samdf)
 rownames(samdf) <- samdf$Sample
