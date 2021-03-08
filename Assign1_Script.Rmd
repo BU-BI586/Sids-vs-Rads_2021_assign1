@@ -335,7 +335,7 @@ ps
 ```{r}
 top90 <- names(sort(taxa_sums(ps), decreasing=TRUE))[1:90]
 ps.top90 <- transform_sample_counts(ps, function(OTU) OTU/sum(OTU))
-ps.top90 <- prune_taxa(top200, ps.top200)
+ps.top90 <- prune_taxa(top90, ps.top90)
 
 plot_bar(ps.top90, x="Sample", fill="Phylum") 
 ```
