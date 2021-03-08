@@ -6,7 +6,7 @@ output: html_document
 ---
 
 # Introduction
-We compared the algal symbiont community composition from two different species in the family *Siderastreidae*. In order to this, we are using ITS2 sequence data from Nicola Kriefall. 
+We compared the algal symbiont community composition from two different species in the family *Siderastreidae* collected off the coast of Florida just before a hurricane. In order to accomplish this, we are using ITS2 sequence data from Nicola Kriefall with the Dada2 Pipeline in R Studio. 
 
 **R version** 
 
@@ -15,12 +15,12 @@ We used R version R-4.0.3
 The fastq files have R1 (forward read) and R2 (reverse read) designations for pair end data
 
 # Dada2 Pipeline Steps
-**In order to do our anaylsis of the communities, we used the dada2 pipeline. This pipeline allows us to trim and filter our sequences and merge our paired reads before assinging taxonomy to assess what species were present. 
+**In order to do our anaylsis of the communities, we used the dada2 pipeline. This pipeline allows us to trim and filter our sequences and merge our paired reads before assinging taxonomy to assess what species were present.**
 
 ### Preparation Steps
 **We first loaded the appropriate libraries for all the analysis and graphs.**
 
-```{r, message=FALSE}
+```{r, loadlib, echo=TRUE, results='hide', message=FALSE, warning=FALSE}
 library(dada2);
 library(ggplot2);
 library(ShortRead); 
@@ -78,7 +78,7 @@ allOrients <- function(primer) {
 ```
 
 Then using the function set up above we create the orientations of our specific primer sequences in order to check all our sequences
-```{r, message=FALSE}
+```{r, echo=TRUE, results = 'hide'}
 FWD.orients <- allOrients(FWD)
 REV.orients <- allOrients(REV)
 FWD.orients
@@ -101,16 +101,16 @@ rbind(FWD.ForwardReads = sapply(FWD.orients, primerHits, fn = fnFs.filtN[[2]]),
       REV.ForwardReads = sapply(REV.orients, primerHits, fn = fnFs.filtN[[2]]), 
       REV.ReverseReads = sapply(REV.orients, primerHits, fn = fnRs.filtN[[2]]))
 ```
-We found no primers, so there is no need to remove them from our data before proceeding.
+We found no primers, so we can proceed.
 
 ### Visualize Raw data
 
 **Now we check the quality of the reads to determine at what point we should trim to avoid errors**
 
-As our files are paired end we ran quality plots for both the forward and reverse reads. We had to remove sequences two sequences due to poor quality
+As our files are paired end we ran quality plots for both the forward and reverse reads. We had to remove two sequences due to poor quality
 
 #### Example of our foward read plots
-```{r, message=FALSE}
+```{r, echo=TRUE, results = 'hide'}
 plotQualityProfile(fnFs[c(1,2,3,4,5,6,7,8,9)])
 plotQualityProfile(fnFs[c(10,11,12,13,14,15)])
 ```
@@ -120,7 +120,7 @@ plotQualityProfile(fnFs[c(1,8)])
 ```
 
 #### Examples of our reverse read plots
-```{r,message=FALSE}
+```{r, echo=TRUE, results = 'hide'}
 plotQualityProfile(fnRs[c(1,2,3,4,5,6,7,8,9)])
 plotQualityProfile(fnRs[c(10,11,12,13,14,15)])
 ```
@@ -164,17 +164,18 @@ errR <- learnErrors(filtRs, multithread=TRUE)
 
 **This is a quick sanity check of our error rates via visualization**
 The black line shows the estimated error rates after convergence of the machine-learning algorithm. The red line shows the error rates expected under the nominal definition of the Q-score
-```{r}
+```{r, warning = FALSE}
 plotErrors(errF, nominalQ=TRUE) 
 plotErrors(errR, nominalQ=TRUE) 
 ```
+
 Error rates converge to zero with increasing Consensus Quality Score, as we had hoped
 
 
 ### Dereplicate reads
 **This is important to reduce computation time by combining all identical sequences into unique sequences with their corresponding abundance**
  
-```{r}
+```{r,echo=TRUE, results='hide', message=FALSE, warning=FALSE}
 derepFs <- derepFastq(filtFs, verbose=TRUE)
 derepRs <- derepFastq(filtRs, verbose=TRUE)
 ```
@@ -187,7 +188,7 @@ names(derepRs) <- sample.names
 
 ### Infer Sequence Variants
 
-```{r, message=FALSE}
+```{r, echo=TRUE, results = 'hide'}
 dadaFs <- dada(derepFs, err=errF, multithread=TRUE)
 dadaRs <- dada(derepRs, err=errR, multithread=TRUE)
 ```
@@ -207,7 +208,7 @@ These are the number of real variants out of all the unique input sequences in t
 
 The output is only kept if there is at least a 12 base overlap and the overlap is identical
 
-```{r, message=FALSE}
+```{r, echo=TRUE, results = 'hide'}
 mergers <- mergePairs(dadaFs, derepFs, dadaRs, derepRs, verbose=TRUE)
 ```
 
@@ -238,6 +239,7 @@ Most reads were at 306 bp (73 datapoints), which is close to what was expected a
 ```{r}
 plot(table(nchar(getSequences(seqtab))))
 ```
+
 Based on the table and plot none of sequences need to be removed as none are longer or shorter than expected
 
 
@@ -250,13 +252,12 @@ Here, we remove all chimeras and return chimera-free unique sequences
 seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE, verbose=TRUE)
 dim(seqtab.nochim)
 ```
-#Identified 5 bimeras out of 93 input sequences
 
-Now, we find the proportion of our reads that do not have chimeras. Here we find that 99.3% of our reads were free of chimeras.
+Now, we find the proportion of our reads that do not have chimeras.
 ```{r}
 sum(seqtab.nochim)/sum(seqtab)
 ```
-#0.9930478
+
 
 
 ### Track Read Stats
@@ -286,7 +287,7 @@ Note that while there is a reclassification of Symbiodiniaceae family, the datab
 
 
 This assigns a clade to each sequence using corresponding reads from the GeoSymbio database
-```{r,message=FALSE}
+```{r, echo=TRUE, results = 'hide'}
 taxa <- assignTaxonomy(seqtab.nochim, "GeoSymbio_ITS2_LocalDatabase_verForPhyloseq.fasta",tryRC=TRUE,minBoot=70,verbose=TRUE)
 (head(taxa))
 ```
@@ -303,14 +304,14 @@ write.csv(taxa, file="C:/Users/corey/Downloads/HW_1/its2_sids_rads/its2_sids_rad
 # Handoff 2 phyloseq
 
 First we import in the dataframe holding sample information from Nicola's github
-```{r,message=FALSE}
+```{r, echo=TRUE, results = 'hide'}
 samdf<-read.csv("mrits_sampledata.csv")
 head(samdf)
 rownames(samdf) <- samdf$Sample
 ```
 
 
-phyloseq object with shorter names
+Phyloseq object with shorter names
 ```{r}
 ids <- paste0("sq", seq(1, length(colnames(seqtab.nochim))))
 ```
@@ -331,7 +332,7 @@ ps
 ```
 
 
-#Bar-plots
+# Bar-plots
 ```{r}
 top90 <- names(sort(taxa_sums(ps), decreasing=TRUE))[1:90]
 ps.top90 <- transform_sample_counts(ps, function(OTU) OTU/sum(OTU))
@@ -339,6 +340,7 @@ ps.top90 <- prune_taxa(top90, ps.top90)
 
 plot_bar(ps.top90, x="Sample", fill="Phylum") 
 ```
+
 visusalize via counts rather than abundances:
 ```{r}
 plot_bar(ps, x= "Sample", fill= "Phylum")
