@@ -282,15 +282,17 @@ write.csv(track,file="its2_reads.csv",row.names=TRUE,quote=FALSE)
 
 **Now we can assign taxonomy based on comparing our sequences to the GeoSymbio database**
 
-Note that while there is a reclassification of Symbiodiniaceae family, the database still refers to it as clades while genus is now the accepted assignment
+GeoSymbio data (taken from "all clades" at https://sites.google.com/site/geosymbio/downloads)
 
+Note that while there is a reclassification of Symbiodiniaceae family, the database still refers to it as clades while genus is now the accepted assignment
 
 
 This assigns a clade to each sequence using corresponding reads from the GeoSymbio database
 ```{r, echo=TRUE, results = 'hide'}
-taxa <- assignTaxonomy(seqtab.nochim, "GeoSymbio_ITS2_LocalDatabase_verForPhyloseq.fasta",tryRC=TRUE,minBoot=70,verbose=TRUE)
-(head(taxa))
+taxa <- assignTaxonomy(seqtab.nochim, "GeoSymbio_ITS2_LocalDatabase_verForPhyloseq.fasta",tryRC=TRUE,minBoot=5,verbose=TRUE)
+head((taxa))
 ```
+Note that are minboot is very low compared to what others may use. That is because the differences between the ITS2 regions may only be a few base pairs
 
 The code below writes these objects as a file so we can restore and come back to it later, as needed
 ```{r}
@@ -305,11 +307,13 @@ write.csv(taxa, file="C:/Users/corey/Downloads/HW_1/its2_sids_rads/its2_sids_rad
 
 First we import in the dataframe holding sample information from Nicola's github
 ```{r, echo=TRUE, results = 'hide'}
-samdf<-read.csv("mrits_sampledata.csv")
+samdf<-read.csv("flits2_sampledata_subset.csv")
+rownames(samdf) <- samdf$colony
 head(samdf)
-rownames(samdf) <- samdf$Sample
 ```
 
+str(samdf)
+str(seqtab.nochim)
 
 Phyloseq object with shorter names
 ```{r}
@@ -321,9 +325,11 @@ We now construct a phyloseq object directly from the dada2 outputs.
 colnames(seqtab.nochim)<-ids
 taxa2 <- cbind(taxa, rownames(taxa)) 
 rownames(taxa2)<-ids
+```
 
+```{r}
 ps <- phyloseq(otu_table(seqtab.nochim, taxa_are_rows=FALSE), 
-               sample_names(samdf), 
+               sample_names(samdf),
                tax_table(taxa2))
 ```
 
@@ -338,15 +344,27 @@ top90 <- names(sort(taxa_sums(ps), decreasing=TRUE))[1:90]
 ps.top90 <- transform_sample_counts(ps, function(OTU) OTU/sum(OTU))
 ps.top90 <- prune_taxa(top90, ps.top90)
 
-plot_bar(ps.top90, x="Sample", fill="Phylum") 
+plot_bar(ps.top90, x="Sample", fill="Class") 
 ```
 
-visusalize via counts rather than abundances:
+visualize via counts rather than abundances:
 ```{r}
-plot_bar(ps, x= "Sample", fill= "Phylum")
+plot_bar(ps, x= "Sample", fill= "Class")
 ```
 
+```{r}
+data(ps.top90)
+```
+```{r}
+gpt <- subset_taxa(ps.top90, Kingdom=="Symbiodinium")
+gpt <- prune_taxa(names(sort(taxa_sums(gpt),TRUE)[1:300]), gpt)
+plot_heatmap(gpt, sample.label="SampleType")
+```
+```{r}
+colnames(tax_table(ps.top90))
+```
 
+# Conclusion
 
 
 
