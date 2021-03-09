@@ -26,7 +26,10 @@ library(ggplot2);
 library(ShortRead); 
 library(ggplot2); 
 library(phyloseq); 
-library(Rmisc)
+library(Rmisc);
+library(readxl);       
+library(dplyr);        
+library(tibble)
 ```
 
 **Additonally we set the path to be the location of the unzipped fastq files**
@@ -78,7 +81,7 @@ allOrients <- function(primer) {
 ```
 
 Then using the function set up above we create the orientations of our specific primer sequences in order to check all our sequences
-```{r, echo=TRUE, results = 'hide'}
+```{r, echo=TRUE, results = FALSE}
 FWD.orients <- allOrients(FWD)
 REV.orients <- allOrients(REV)
 FWD.orients
@@ -110,23 +113,16 @@ We found no primers, so we can proceed.
 As our files are paired end we ran quality plots for both the forward and reverse reads. We had to remove two sequences due to poor quality
 
 #### Example of our foward read plots
-```{r, echo=TRUE, results = 'hide'}
+```{r, echo=TRUE, message=FALSE, results='hide'}
 plotQualityProfile(fnFs[c(1,2,3,4,5,6,7,8,9)])
 plotQualityProfile(fnFs[c(10,11,12,13,14,15)])
 ```
 
-```{r,echo=FALSE}
-plotQualityProfile(fnFs[c(1,8)])
-```
 
 #### Examples of our reverse read plots
-```{r, echo=TRUE, results = 'hide'}
+```{r, echo=TRUE, message=FALSE, results='hide'}
 plotQualityProfile(fnRs[c(1,2,3,4,5,6,7,8,9)])
 plotQualityProfile(fnRs[c(10,11,12,13,14,15)])
-```
-
-```{r, echo=FALSE}
-plotQualityProfile(fnRs[c(1,8)])
 ```
 
 
@@ -175,7 +171,7 @@ Error rates converge to zero with increasing Consensus Quality Score, as we had 
 ### Dereplicate reads
 **This is important to reduce computation time by combining all identical sequences into unique sequences with their corresponding abundance**
  
-```{r,echo=TRUE, results='hide', message=FALSE, warning=FALSE}
+```{r,echo=TRUE, results=FALSE, message=FALSE, warning=FALSE}
 derepFs <- derepFastq(filtFs, verbose=TRUE)
 derepRs <- derepFastq(filtRs, verbose=TRUE)
 ```
@@ -188,7 +184,7 @@ names(derepRs) <- sample.names
 
 ### Infer Sequence Variants
 
-```{r, echo=TRUE, results = 'hide'}
+```{r, echo=TRUE, results = FALSE}
 dadaFs <- dada(derepFs, err=errF, multithread=TRUE)
 dadaRs <- dada(derepRs, err=errR, multithread=TRUE)
 ```
@@ -208,11 +204,8 @@ These are the number of real variants out of all the unique input sequences in t
 
 The output is only kept if there is at least a 12 base overlap and the overlap is identical
 
-```{r, echo=TRUE, results = 'hide'}
+```{r, echo=TRUE, message= FALSE, results='hide'}
 mergers <- mergePairs(dadaFs, derepFs, dadaRs, derepRs, verbose=TRUE)
-```
-
-```{r}
 head(mergers[[1]])
 summary((mergers[[1]]))
 ```
@@ -284,7 +277,7 @@ write.csv(track,file="its2_reads.csv",row.names=TRUE,quote=FALSE)
 
 GeoSymbio data (taken from "all clades" at https://sites.google.com/site/geosymbio/downloads)
 
-Note that while there is a reclassification of Symbiodiniaceae family, the database still refers to it as clades while genus is now the accepted assignment
+Note that while there is a reclassification of Symbiodiniaceae family, the database still refers to it as clades while clades have now been changed to genus
 
 
 This assigns a clade to each sequence using corresponding reads from the GeoSymbio database
@@ -312,8 +305,6 @@ rownames(samdf) <- samdf$colony
 head(samdf)
 ```
 
-str(samdf)
-str(seqtab.nochim)
 
 Phyloseq object with shorter names
 ```{r}
@@ -339,32 +330,49 @@ ps
 
 
 # Bar-plots
+
+**We made three different graphs to illustrate our results**
+
+For our basic bar plot, we used the top 90 sequences as anything lower than that excluding certain species while anything above did not lead to a difference.
 ```{r}
 top90 <- names(sort(taxa_sums(ps), decreasing=TRUE))[1:90]
 ps.top90 <- transform_sample_counts(ps, function(OTU) OTU/sum(OTU))
 ps.top90 <- prune_taxa(top90, ps.top90)
 
-plot_bar(ps.top90, x="Sample", fill="Class") 
+plot_bar(ps.top90, x="Sample", fill="Class")+ scale_x_discrete(limits=c("A12","B1","B3","D1","D7","F2","F9","H6","H7","a6","A7","C1","C2","D4","E6"))
 ```
 
-visualize via counts rather than abundances:
+We ordered the x-axis of our barplot so that the 9 *Siderastrea siderea* samples were on the left and the 6 *Siderastrea radians* samples were on the right.
+
+
+
+We created a heat map of the OTUs that represent at least 10% of reads in at least one sample. This was based on normalizing all the samples to the median number of reads.
+
+First we created an object of the abundance of all the reads not just the top 90 and tehn normalized that. The plot was then created from that data.
 ```{r}
-plot_bar(ps, x= "Sample", fill= "Class")
+ps.abund <- transform_sample_counts(ps, function(OTU) OTU/sum(OTU))
+total = median(sample_sums(ps.abund))
+taxa_abund <- filter_taxa(ps.abund, function(x) sum(x > total*0.10) > 0, TRUE)
+
+plot_heatmap(taxa_abund, method = "MDS", distance = "(A+B-2*J)/(A+B-J)", 
+               taxa.label = "Class", taxa.order = "Class", 
+               trans=NULL, low="beige", high="red", na.value="beige")
 ```
 
+Samples of different species were in no clear pattern
+
+
+Network analysis of the OTUs representing at least 10% of reads in one sample
 ```{r}
-data(ps.top90)
+plot_net(taxa_abund, distance = "(A+B-2*J)/(A+B)", type = "taxa",
+           maxdist = 0.7, color="Class")
 ```
-```{r}
-gpt <- subset_taxa(ps.top90, Kingdom=="Symbiodinium")
-gpt <- prune_taxa(names(sort(taxa_sums(gpt),TRUE)[1:300]), gpt)
-plot_heatmap(gpt, sample.label="SampleType")
-```
-```{r}
-colnames(tax_table(ps.top90))
-```
+
+This shows us the relatedness of the different species including sequences that did not map to a known species on the database. The connections are based on the similarities of the sequences or if the sequences mainly occur together. This would require further analysis but this initial result still gives a good picture.
 
 # Conclusion
+
+Overall, we did not see any clear patterns differentiating the community compositions between the two coral species. We did find that only *Siderastrea siderea* hosted species from the thermally tolerant genus *Durusdinium*. Additionally, when C46 was present in a sample, it dominated over any other species. 
 
 
 
